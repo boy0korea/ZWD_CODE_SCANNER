@@ -1,5 +1,7 @@
 # ZWD_CODE_SCANNER
-WD code scanner
+Web Dynpro ABAP code scanner
+
+Example:
 
 ![image](https://user-images.githubusercontent.com/75079431/131275612-18932f60-2a61-4f77-93aa-2f6986a2f835.png)
 
