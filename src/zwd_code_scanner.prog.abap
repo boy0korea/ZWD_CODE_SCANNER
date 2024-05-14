@@ -30,54 +30,28 @@ CLASS lcl_search_wb IMPLEMENTATION.
   METHOD if_wb_manager~control_pai.
   ENDMETHOD.
   METHOD if_wb_manager~request_tool_access.
-    DATA: lo_search_wb_manager TYPE REF TO if_wb_manager.
-    DATA: obj_tool_man TYPE REF TO cl_wb_tool_manager.
-    DATA: obj_tool     TYPE REF TO if_wb_program.
-    DATA: objname TYPE c LENGTH 132.
-    DATA: obj_prog_state TYPE REF TO if_wb_source_state.
-    DATA: len TYPE i.
+    DATA: lv_object_name    TYPE c LENGTH 132,
+          lo_obj_prog_state TYPE REF TO if_wb_source_state,
+          lv_position       TYPE i.
 
-    TRY.
-        obj_prog_state ?= p_wb_request->object_state.
+    lv_object_name = p_wb_request->object_name.
+    CONDENSE lv_object_name.
+    lo_obj_prog_state ?= p_wb_request->object_state.
+    lv_position = lo_obj_prog_state->line.
 
-        CASE p_wb_request->object_type.
-          WHEN 'OSO'. "Klasse geschützter Bereich
-            objname = '==============================CO'.
-            len = strlen( p_wb_request->object_name ).
-            objname(len) = p_wb_request->object_name.
+    CALL FUNCTION 'RS_TOOL_ACCESS'
+      EXPORTING
+        operation   = 'SHOW'
+        object_name = lv_object_name
+        object_type = 'P'
+        position    = lv_position
+      EXCEPTIONS
+        OTHERS      = 3.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+        WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
 
-          WHEN OTHERS.
-            objname = p_wb_request->object_name.
-            CONDENSE objname.
-
-        ENDCASE.
-
-        DATA: str_head TYPE slin_head.
-        DATA: str_info TYPE cl_slin_navi=>access_info.
-        DATA: obj_slin_res TYPE REF TO cl_slin_virtual_resources.
-
-        obj_slin_res = cl_slin_virtual_resources=>get_instance( space ).
-
-        str_head-src_incl = objname.
-        str_head-src_line = obj_prog_state->line.
-        str_head-editor = 'P'.
-
-        str_info = cl_slin_navi=>access_info_from_head(
-                    vres    = obj_slin_res
-                    head    = str_head ).
-
-        DATA: lv_show TYPE flag.
-        IF p_wb_request->operation EQ 'EDIT'.
-          lv_show = abap_false.
-        ELSE.
-          lv_show = abap_true.
-        ENDIF.
-        cl_slin_navi=>display_object( rfcdest = space
-                                      show = lv_show
-                                      access_info = str_info ).
-
-      CATCH cx_root.
-    ENDTRY.
   ENDMETHOD.
   METHOD if_wb_manager~set_workspace.
   ENDMETHOD.
@@ -195,14 +169,12 @@ START-OF-SELECTION.
       EXPORTING
         i_search_handle   = lo_wb_search
         i_wb_request      = lo_wb_request
-        i_suppress_dialog = abap_true
+        i_suppress_dialog = 'X'
         i_find_string     = p_find
         i_search_mode     = 'GLOBAL'
       IMPORTING
         e_founds          = lt_founds_sub   " Table of Hits
       EXCEPTIONS
-        x_not_found       = 1
-        x_aborted         = 2
         OTHERS            = 3.
 
     APPEND LINES OF lt_founds_sub TO lt_founds.
@@ -215,7 +187,8 @@ START-OF-SELECTION.
         lv_guid = ls_founds-obj_name+10.
         READ TABLE lt_wdy_wb_geninfo INTO ls_wdy_wb_geninfo WITH KEY guid = lv_guid BINARY SEARCH.
         IF sy-subrc EQ 0.
-          lv_founds_name = ls_wdy_wb_geninfo-component_name && ` - ` && ls_wdy_wb_geninfo-controller_name.
+*          lv_founds_name = ls_wdy_wb_geninfo-component_name && ` - ` && ls_wdy_wb_geninfo-controller_name.
+          CONCATENATE ls_wdy_wb_geninfo-component_name ` - ` ls_wdy_wb_geninfo-controller_name INTO lv_founds_name.
         ELSE.
           CLEAR: lv_founds_name.
         ENDIF.
