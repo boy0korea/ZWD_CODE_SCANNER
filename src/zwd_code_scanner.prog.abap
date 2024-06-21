@@ -128,17 +128,18 @@ START-OF-SELECTION.
   ENDIF.
 
 * cl_wdy_wb_naming_service=>get_classname_for_component( )
-  CHECK: lt_wdcomp IS NOT INITIAL.
-  SELECT *
-    INTO TABLE lt_wdy_wb_geninfo
-    FROM wdy_wb_geninfo
-    FOR ALL ENTRIES IN lt_wdcomp
-    WHERE component_name = lt_wdcomp-component_name.
+  IF lt_wdcomp IS NOT INITIAL.
+    SELECT *
+      INTO TABLE lt_wdy_wb_geninfo
+      FROM wdy_wb_geninfo
+      FOR ALL ENTRIES IN lt_wdcomp
+      WHERE component_name = lt_wdcomp-component_name.
 
-  SORT lt_wdcomp BY assistance_class.
-  DELETE ADJACENT DUPLICATES FROM lt_wdcomp COMPARING assistance_class.
-  DELETE lt_wdcomp WHERE assistance_class IS INITIAL.
-  SORT lt_wdcomp BY component_name.
+    SORT lt_wdcomp BY assistance_class.
+    DELETE ADJACENT DUPLICATES FROM lt_wdcomp COMPARING assistance_class.
+    DELETE lt_wdcomp WHERE assistance_class IS INITIAL.
+    SORT lt_wdcomp BY component_name.
+  ENDIF.
 
   LOOP AT lt_wdy_wb_geninfo INTO ls_wdy_wb_geninfo WHERE controller_name IS INITIAL.
     CONCATENATE c_program_prefix ls_wdy_wb_geninfo-guid INTO lv_classname.
@@ -181,7 +182,6 @@ START-OF-SELECTION.
   ENDLOOP.
 
   IF lt_founds IS NOT INITIAL.
-
     LOOP AT lt_founds INTO ls_founds WHERE obj_name(8) EQ c_program_prefix.
       IF lv_guid <> ls_founds-obj_name+10.
         lv_guid = ls_founds-obj_name+10.
@@ -199,10 +199,10 @@ START-OF-SELECTION.
         MODIFY lt_founds FROM ls_founds TRANSPORTING name.
       ENDIF.
     ENDLOOP.
-
-    CALL FUNCTION 'S_SEARCH_SHOW_LIST'
-      EXPORTING
-        i_search_handle = lo_wb_search
-        i_founds        = lt_founds
-        i_wbobj_type    = swbm_c_type_class.
   ENDIF.
+
+  CALL FUNCTION 'S_SEARCH_SHOW_LIST'
+    EXPORTING
+      i_search_handle = lo_wb_search
+      i_founds        = lt_founds
+      i_wbobj_type    = swbm_c_type_class.
